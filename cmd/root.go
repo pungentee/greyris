@@ -25,6 +25,7 @@ import (
 	"errors"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -36,7 +37,7 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		if args[0][:34] != "https://open.spotify.com/playlist/" {
+		if !strings.HasPrefix(args[0], "https://open.spotify.com/playlist/") {
 			return errors.New("invalid link")
 		}
 
