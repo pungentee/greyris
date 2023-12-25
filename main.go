@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/Pungentee/Greyris-cli/cmd"
+import "github.com/Pungentee/greyris/cmd"
 
 func main() {
 	cmd.Execute()

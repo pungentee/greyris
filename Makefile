@@ -18,7 +18,7 @@ dirs:
 
 .PHONY : clean
 clean :
-	rm -rf out/*
+	rm -rf out/* db/
 
 .PHONY : run
 run :
