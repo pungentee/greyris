@@ -44,14 +44,12 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 		db, err := bitcask.Open("db")
 		if err != nil {
 			log.Fatal(err)
-			return
 		}
 		defer db.Close()
 
-		client, err := getClient(db)
+		client, err := login(db)
 		if err != nil {
 			log.Fatal(err)
-			return
 		}
 
 		fmt.Println(client)
@@ -112,7 +110,7 @@ func getClientSecret(db bitcask.DB) (string, error) {
 			}
 		}
 
-		err := db.Put(secretKey, secret)
+		err = db.Put(secretKey, secret)
 		if err != nil {
 			return "", err
 		}
@@ -121,31 +119,36 @@ func getClientSecret(db bitcask.DB) (string, error) {
 	return string(secret), nil
 }
 
-func getClient(db bitcask.DB) (client *spotify.Client, err error) {
-	tokenKey := bitcask.Key("tokenJson")
-	var token *oauth2.Token
-
-	id, err := getClientID(db)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	secret, err := getClientSecret(db)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	auth := spotifyauth.New(
-		spotifyauth.WithClientID(id),
-		spotifyauth.WithClientSecret(secret),
+func getAuthenticator(clientID, clientSecret string) *spotifyauth.Authenticator {
+	return spotifyauth.New(
+		spotifyauth.WithClientID(clientID),
+		spotifyauth.WithClientSecret(clientSecret),
 		spotifyauth.WithRedirectURL("http://localhost:8080/callback"),
-		spotifyauth.WithScopes(spotifyauth.ScopeUserReadPrivate))
+		spotifyauth.WithScopes(
+			spotifyauth.ScopePlaylistReadPrivate,
+			spotifyauth.ScopePlaylistModifyPrivate,
+			spotifyauth.ScopePlaylistModifyPublic))
+}
+
+func login(db bitcask.DB) (*spotify.Client, error) {
+	var token *oauth2.Token
+	tokenKey := bitcask.Key("tokenJson")
+
+	clientID, err := getClientID(db)
+	if err != nil {
+		return nil, err
+	}
+
+	clientSecret, err := getClientSecret(db)
+	if err != nil {
+		return nil, err
+	}
+
+	authenticator := getAuthenticator(clientID, clientSecret)
 
 	tokenJson, err := db.Get(tokenKey)
 	if err != nil {
-		client = Auth(auth)
+		client := authenticate(authenticator)
 		token, err = client.Token()
 		if err != nil {
 			return nil, err
@@ -169,19 +172,17 @@ func getClient(db bitcask.DB) (client *spotify.Client, err error) {
 		return nil, err
 	}
 
-	client = spotify.New(auth.Client(context.Background(), token))
-
-	return
+	return spotify.New(authenticator.Client(context.Background(), token)), nil
 }
 
-func Auth(auth *spotifyauth.Authenticator) (client *spotify.Client) {
+func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
 	ch := make(chan *spotify.Client)
 	state := "abc123"
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		tok, err := auth.Token(r.Context(), state, r)
+		tok, err := authenticator.Token(r.Context(), state, r)
 		if err != nil {
-			http.Error(w, "Couldn't get token", http.StatusForbidden)
+			http.Error(w, "<h1>Couldn't get token</h1>", http.StatusForbidden)
 			log.Fatal(err)
 		}
 
@@ -190,9 +191,9 @@ func Auth(auth *spotifyauth.Authenticator) (client *spotify.Client) {
 			log.Fatalf("State mismatch: %s != %s\n", st, state)
 		}
 
-		client = spotify.New(auth.Client(r.Context(), tok))
+		client := spotify.New(authenticator.Client(r.Context(), tok))
 
-		_, err = fmt.Fprintf(w, "Login Completed!")
+		_, err = fmt.Fprintf(w, "<h1>Login Completed!</h1>")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -209,10 +210,10 @@ func Auth(auth *spotifyauth.Authenticator) (client *spotify.Client) {
 		}
 	}()
 
-	url := auth.AuthURL(state)
+	url := authenticator.AuthURL(state)
 	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
 
-	client = <-ch
+	client := <-ch
 
-	return
+	return client
 }
