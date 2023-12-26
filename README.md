@@ -15,8 +15,5 @@ $ go install github.com/Pungentee/greyris
 
 ## Usage
 ```shell
-$ greyris auth 
-# authenticate...
-
 $ greyris <link to spotify playlist>
 ```
