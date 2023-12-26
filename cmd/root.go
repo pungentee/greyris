@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -41,7 +42,12 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 	},
 
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := bitcask.Open("db")
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		db, err := bitcask.Open(filepath.Join(homeDir, ".greyris", "db"))
 		if err != nil {
 			log.Fatal(err)
 		}
