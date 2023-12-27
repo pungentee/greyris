@@ -58,7 +58,15 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 			log.Fatal(err)
 		}
 
-		fmt.Println(client)
+		playlistID := getIdByLink(args[0])
+		tracks, err := getFullTrackList(client, playlistID)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, value := range tracks {
+			fmt.Println(value.Track.Track.Name)
+		}
 	},
 }
 
@@ -199,7 +207,7 @@ func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
 
 		client := spotify.New(authenticator.Client(r.Context(), tok))
 
-		_, err = fmt.Fprintf(w, "<h1>Login Completed!</h1>")
+		_, err = fmt.Fprintf(w, "<h1>Login Completed!</h1><h3>You can close this page</h3>")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -222,4 +230,26 @@ func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
 	client := <-ch
 
 	return client
+}
+
+func getIdByLink(link string) string {
+	return link[34:56]
+}
+
+func getFullTrackList(client *spotify.Client, playlistID string) (result []spotify.PlaylistItem, err error) {
+	tracks, err := client.GetPlaylistItems(context.Background(), spotify.ID(playlistID))
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		result = append(result, tracks.Items...)
+		err = client.NextPage(context.Background(), tracks)
+		if errors.Is(err, spotify.ErrNoMorePages) {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
 }
