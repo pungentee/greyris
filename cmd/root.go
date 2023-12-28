@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -40,7 +39,7 @@ Sorting rules: by author name -> by album release date -> by track number in the
 
 Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/callback"
 `,
-	Version: "v1.0.0",
+	Version: "v1.2.0",
 
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
@@ -48,34 +47,31 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 		}
 
 		if !strings.HasPrefix(args[0], "https://open.spotify.com/playlist/") {
-			return errors.New("invalid link")
+			aliasesDB, err := getDB("alias", false)
+			defer aliasesDB.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			link, err := aliasesDB.Get(bitcask.Key(args[0]))
+			if err != nil {
+				return errors.New("invalid link or undefined alias")
+			}
+
+			args[0] = string(link)
 		}
 
 		return nil
 	},
 
 	Run: func(cmd *cobra.Command, args []string) {
-		homeDir, err := os.UserHomeDir()
+		userInfoDB, err := getDB("login", newUser)
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer userInfoDB.Close()
 
-		dbPath := filepath.Join(homeDir, ".greyris", "db")
-
-		if newUser {
-			err := os.RemoveAll(dbPath)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		db, err := bitcask.Open(dbPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer db.Close()
-
-		client, err := login(db)
+		client, err := login(userInfoDB)
 		if err != nil {
 			log.Fatal(err)
 		}
