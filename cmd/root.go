@@ -36,7 +36,7 @@ Sorting rules: by author name -> by album release date -> by track number in the
 
 Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/callback"
 `,
-	Version: "v0.0.8",
+	Version: "v1.0.0",
 
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
