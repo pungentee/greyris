@@ -18,6 +18,10 @@ import (
 	"strings"
 )
 
+var (
+	newUser bool
+)
+
 // Track for store only useful data
 type Track struct {
 	artist           string
@@ -56,7 +60,16 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 			log.Fatal(err)
 		}
 
-		db, err := bitcask.Open(filepath.Join(homeDir, ".greyris", "db"))
+		dbPath := filepath.Join(homeDir, ".greyris", "db")
+
+		if newUser {
+			err := os.RemoveAll(dbPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		db, err := bitcask.Open(dbPath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -83,6 +96,10 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 
 		fmt.Println("Completed")
 	},
+}
+
+func init() {
+	rootCmd.Flags().BoolVar(&newUser, "new-user", false, "log in as a new user")
 }
 
 func Execute() {
@@ -241,9 +258,6 @@ func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
 		}
 
 		ch <- client
-	})
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for:", r.URL.String())
 	})
 	go func() {
 		err := http.ListenAndServe(":8080", nil)
