@@ -18,6 +18,7 @@ import (
 	"strings"
 )
 
+// Track for store only useful data
 type Track struct {
 	artist           string
 	albumReleaseDate string
@@ -87,6 +88,8 @@ func Execute() {
 	}
 }
 
+// getClientID finds client ID in db and returns client ID
+// if not found, then requests it from the user and stores it in the database
 func getClientID(db bitcask.DB) (string, error) {
 	idKey := bitcask.Key("clientID")
 	id, err := db.Get(idKey)
@@ -115,6 +118,8 @@ func getClientID(db bitcask.DB) (string, error) {
 	return string(id), nil
 }
 
+// getClientSecret finds client Secret in db and returns client ID
+// if not found, then requests it from the user and stores it in the database
 func getClientSecret(db bitcask.DB) (string, error) {
 	secretKey := bitcask.Key("secretID")
 	secret, err := db.Get(secretKey)
@@ -143,6 +148,7 @@ func getClientSecret(db bitcask.DB) (string, error) {
 	return string(secret), nil
 }
 
+// getAuthenticator returns configured authenticator
 func getAuthenticator(clientID, clientSecret string) *spotifyauth.Authenticator {
 	return spotifyauth.New(
 		spotifyauth.WithClientID(clientID),
@@ -154,6 +160,9 @@ func getAuthenticator(clientID, clientSecret string) *spotifyauth.Authenticator 
 			spotifyauth.ScopePlaylistModifyPublic))
 }
 
+// login returns *spotify.Client
+// if a token is stored in db, then log in with it
+// if token is not found in db, then using authenticate log in and store token in db
 func login(db bitcask.DB) (*spotify.Client, error) {
 	var token *oauth2.Token
 	tokenKey := bitcask.Key("tokenJson")
@@ -170,8 +179,10 @@ func login(db bitcask.DB) (*spotify.Client, error) {
 
 	authenticator := getAuthenticator(clientID, clientSecret)
 
+	// getting token from db
 	tokenJson, err := db.Get(tokenKey)
 	if err != nil {
+		// if token not found, then log in user and store token in db
 		client := authenticate(authenticator)
 		token, err = client.Token()
 		if err != nil {
@@ -196,10 +207,13 @@ func login(db bitcask.DB) (*spotify.Client, error) {
 		return nil, err
 	}
 
+	// if token already stores in db just use it for get spotify.Client
 	return spotify.New(authenticator.Client(context.Background(), token)), nil
 }
 
+// authenticate log in user and returns *spotify.Client
 func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
+	// copied from https://github.com/zmb3/spotify/blob/master/examples/authenticate/authcode/authenticate.go
 	ch := make(chan *spotify.Client)
 	state := "abc123"
 
@@ -242,20 +256,22 @@ func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
 	return client
 }
 
+// getIdByLink returns id from link
 func getIdByLink(link string) string {
 	return link[34:56]
 }
 
+// getAllItemsList return list with all tracks from playlist
 func getAllItemsList(client *spotify.Client, playlistID string) (result []spotify.PlaylistItem, err error) {
-	tracks, err := client.GetPlaylistItems(context.Background(), spotify.ID(playlistID))
+	tracks, err := client.GetPlaylistItems(context.Background(), spotify.ID(playlistID)) // getting first page
 	if err != nil {
 		return nil, err
 	}
 
 	for {
-		result = append(result, tracks.Items...)
-		err = client.NextPage(context.Background(), tracks)
-		if errors.Is(err, spotify.ErrNoMorePages) {
+		result = append(result, tracks.Items...)            // adding each track from page in result
+		err = client.NextPage(context.Background(), tracks) // changing to next page
+		if errors.Is(err, spotify.ErrNoMorePages) {         // break if it is last page
 			break
 		} else if err != nil {
 			return nil, err
@@ -264,12 +280,17 @@ func getAllItemsList(client *spotify.Client, playlistID string) (result []spotif
 	return result, nil
 }
 
+// itemsToTracks converts spotify.PlaylistItem list to Track list
 func itemsToTracks(items []spotify.PlaylistItem) (tracks []Track) {
 	for _, value := range items {
 		track := value.Track.Track
+		artistName := strings.ToLower(track.Artists[0].Name)  // convert every name to lower case for correct comparing
+		artistName, _ = strings.CutPrefix(artistName, "the ") // if the prefix "the" exists, then cut it
+
+		// adding each track to the list only with useful information
 		tracks = append(tracks, Track{
 			trackNumber:      track.TrackNumber,
-			artist:           track.Artists[0].Name,
+			artist:           artistName,
 			albumReleaseDate: track.Album.ReleaseDate,
 			id:               track.ID,
 		})
@@ -277,20 +298,23 @@ func itemsToTracks(items []spotify.PlaylistItem) (tracks []Track) {
 	return
 }
 
+// sortTrackList return sorted track list
 func sortTrackList(tracks []Track) []Track {
 	isSorted := false
 
 	for !isSorted {
 		isSorted = true
 		for i := 0; i < len(tracks)-1; i++ {
-			if strings.Compare(tracks[i].artist, tracks[i+1].artist) == 1 { // current is greater
+			if tracks[i].artist > tracks[i+1].artist { // if current artist greater next then swap them
 				isSorted = false
 				tracks[i], tracks[i+1] = tracks[i+1], tracks[i]
-			} else if strings.Compare(tracks[i].artist, tracks[i+1].artist) == 0 { // same
-				if strings.Compare(tracks[i].albumReleaseDate, tracks[i+1].albumReleaseDate) == 1 { // current is greater
+			} else if tracks[i].artist == tracks[i+1].artist {
+				// checking album release dates
+				if tracks[i].albumReleaseDate > tracks[i+1].albumReleaseDate {
 					isSorted = false
 					tracks[i], tracks[i+1] = tracks[i+1], tracks[i]
-				} else if strings.Compare(tracks[i].albumReleaseDate, tracks[i+1].albumReleaseDate) == 0 { // same
+				} else if tracks[i].albumReleaseDate == tracks[i+1].albumReleaseDate {
+					// checking tack number in album
 					if tracks[i].trackNumber > tracks[i+1].trackNumber {
 						isSorted = false
 						tracks[i], tracks[i+1] = tracks[i+1], tracks[i]
