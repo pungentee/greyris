@@ -11,7 +11,7 @@ import (
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add [alias name] [playlist link]",
+	Use:   "add [name] [link]",
 	Short: "Add or update alias to the playlist link",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := cobra.ExactArgs(2)(cmd, args); err != nil {

@@ -15,5 +15,15 @@ $ go install github.com/Pungentee/greyris@latest
 
 ## Usage
 ```shell
-$ greyris <link to playlist>
+# sort playlist
+$ greyris <link or alias>
+
+# add alias
+$ greyris add <name> <link>
+
+# print list of all aliases
+$ greyris list
+
+# remove alias
+$ greyris remove <name>
 ```
