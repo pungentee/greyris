@@ -18,6 +18,13 @@ import (
 	"strings"
 )
 
+type Track struct {
+	artist           string
+	albumReleaseDate string
+	trackNumber      int
+	id               spotify.ID
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "greyris [link to your playlist in spotify]",
@@ -59,13 +66,16 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 		}
 
 		playlistID := getIdByLink(args[0])
-		tracks, err := getFullTrackList(client, playlistID)
+		items, err := getAllItemsList(client, playlistID)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for _, value := range tracks {
-			fmt.Println(value.Track.Track.Name)
+		tracks := itemsToTracks(items)
+		sortedTracks := sortTrackList(tracks)
+
+		for _, value := range sortedTracks {
+			fmt.Println(value)
 		}
 	},
 }
@@ -236,7 +246,7 @@ func getIdByLink(link string) string {
 	return link[34:56]
 }
 
-func getFullTrackList(client *spotify.Client, playlistID string) (result []spotify.PlaylistItem, err error) {
+func getAllItemsList(client *spotify.Client, playlistID string) (result []spotify.PlaylistItem, err error) {
 	tracks, err := client.GetPlaylistItems(context.Background(), spotify.ID(playlistID))
 	if err != nil {
 		return nil, err
@@ -252,4 +262,43 @@ func getFullTrackList(client *spotify.Client, playlistID string) (result []spoti
 		}
 	}
 	return result, nil
+}
+
+func itemsToTracks(items []spotify.PlaylistItem) (tracks []Track) {
+	for _, value := range items {
+		track := value.Track.Track
+		tracks = append(tracks, Track{
+			trackNumber:      track.TrackNumber,
+			artist:           track.Artists[0].Name,
+			albumReleaseDate: track.Album.ReleaseDate,
+			id:               track.ID,
+		})
+	}
+	return
+}
+
+func sortTrackList(tracks []Track) []Track {
+	isSorted := false
+
+	for !isSorted {
+		isSorted = true
+		for i := 0; i < len(tracks)-1; i++ {
+			if strings.Compare(tracks[i].artist, tracks[i+1].artist) == 1 { // current is greater
+				isSorted = false
+				tracks[i], tracks[i+1] = tracks[i+1], tracks[i]
+			} else if strings.Compare(tracks[i].artist, tracks[i+1].artist) == 0 { // same
+				if strings.Compare(tracks[i].albumReleaseDate, tracks[i+1].albumReleaseDate) == 1 { // current is greater
+					isSorted = false
+					tracks[i], tracks[i+1] = tracks[i+1], tracks[i]
+				} else if strings.Compare(tracks[i].albumReleaseDate, tracks[i+1].albumReleaseDate) == 0 { // same
+					if tracks[i].trackNumber > tracks[i+1].trackNumber {
+						isSorted = false
+						tracks[i], tracks[i+1] = tracks[i+1], tracks[i]
+					}
+				}
+			}
+		}
+	}
+
+	return tracks
 }
