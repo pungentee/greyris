@@ -10,7 +10,7 @@ Sorting rules: by author name -> by album release date -> by track number in the
 
 ## Install
 ```shell
-$ go install github.com/Pungentee/greyris
+$ go install github.com/Pungentee/greyris@latest
 ```
 
 ## Usage

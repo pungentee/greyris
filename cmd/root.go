@@ -36,6 +36,7 @@ Sorting rules: by author name -> by album release date -> by track number in the
 
 Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/callback"
 `,
+	Version: "v0.0.8",
 
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
@@ -73,11 +74,14 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 		}
 
 		tracks := itemsToTracks(items)
-		sortedTracks := sortTrackList(tracks)
+		sorted := sortTrackList(append([]Track(nil), tracks...))
 
-		for _, value := range sortedTracks {
-			fmt.Println(value)
+		err = reorderPlaylist(client, spotify.ID(playlistID), tracks, sorted)
+		if err != nil {
+			log.Fatal(err)
 		}
+
+		fmt.Println("Completed")
 	},
 }
 
@@ -263,6 +267,8 @@ func getIdByLink(link string) string {
 
 // getAllItemsList return list with all tracks from playlist
 func getAllItemsList(client *spotify.Client, playlistID string) (result []spotify.PlaylistItem, err error) {
+	fmt.Println("Fetching tracks list...")
+
 	tracks, err := client.GetPlaylistItems(context.Background(), spotify.ID(playlistID)) // getting first page
 	if err != nil {
 		return nil, err
@@ -301,7 +307,7 @@ func itemsToTracks(items []spotify.PlaylistItem) (tracks []Track) {
 // sortTrackList return sorted track list
 func sortTrackList(tracks []Track) []Track {
 	isSorted := false
-
+	fmt.Println("Sorting...")
 	for !isSorted {
 		isSorted = true
 		for i := 0; i < len(tracks)-1; i++ {
@@ -325,4 +331,52 @@ func sortTrackList(tracks []Track) []Track {
 	}
 
 	return tracks
+}
+
+// reorderPlaylist reorders playlist by comparing initial and modified
+func reorderPlaylist(client *spotify.Client, id spotify.ID, initial, modified []Track) error {
+	fmt.Println("Reordering playlist...")
+
+	for newIndex, value := range modified {
+		oldIndex := indexOf(value, initial)
+		if newIndex != oldIndex {
+			_, err := client.ReorderPlaylistTracks(context.Background(), id, spotify.PlaylistReorderOptions{
+				RangeStart:   oldIndex,
+				InsertBefore: newIndex,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		initial = moveElement(initial, oldIndex, newIndex) // syncing initial list with Spotify playlist
+	}
+
+	return nil
+}
+
+// indexOf returns the index of an element if it matches the argument element
+// if element not found, returns a -1.
+func indexOf[T comparable](element T, slice []T) int {
+	for index, value := range slice {
+		if element == value {
+			return index
+		}
+	}
+	return -1
+}
+
+// insert inserts element by index to slice
+func insert[T any](slice []T, value T, index int) []T {
+	return append(slice[:index], append([]T{value}, slice[index:]...)...)
+}
+
+// remove removes from slice by index
+func remove[T any](slice []T, index int) []T {
+	return append(slice[:index], slice[index+1:]...)
+}
+
+// moveElement moves element
+func moveElement[T any](slice []T, from int, to int) []T {
+	value := slice[from]
+	return insert(remove(slice, from), value, to)
 }
