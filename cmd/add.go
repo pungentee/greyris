@@ -35,9 +35,9 @@ var addCmd = &cobra.Command{
 
 		for index := 0; index < len(args); index += 2 {
 			aliasName := args[index]
-			aliasLink := args[index+1][:56]
+			aliasID := getIdByLink(args[index+1])
 
-			err = aliasesDB.Put(bitcask.Key(aliasName), bitcask.Value(aliasLink))
+			err = aliasesDB.Put(bitcask.Key(aliasName), bitcask.Value(aliasID))
 			if err != nil {
 				log.Fatal(err)
 			}
