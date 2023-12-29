@@ -19,14 +19,6 @@ var (
 	progressPrint  = true
 )
 
-// Track for store only useful data
-type Track struct {
-	artist           string
-	albumReleaseDate string
-	trackNumber      int
-	id               spotify.ID
-}
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "greyris [link] || [alias] || all || [link] all",
