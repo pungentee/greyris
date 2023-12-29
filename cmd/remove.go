@@ -7,8 +7,9 @@ import (
 )
 
 var removeCmd = &cobra.Command{
-	Use:   "remove [name]",
-	Short: "Remove alias to the playlist link",
+	Use:     "remove [alias] || [alias] [alias]...",
+	Aliases: []string{"rm"},
+	Short:   "Remove alias to the playlist link",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 			return err

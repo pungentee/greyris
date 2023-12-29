@@ -16,14 +16,19 @@ $ go install github.com/Pungentee/greyris@latest
 ## Usage
 ```shell
 # sort playlist
-$ greyris <link or alias>
+$ greyris [link]
+$ greyris [alias] 
+$ greyris all # sorts all aliases
+$ greyris [link] all # combine
 
 # add alias
-$ greyris add <name> <link>
+$ greyris add [name] [link]
+$ greyris add [name] [link] [name] [link]... # add multiple aliases 
 
 # print list of all aliases
 $ greyris list
 
 # remove alias
-$ greyris remove <name>
+$ greyris remove [alias]
+$ greyris remove [alias] [alias]... # remove multiple aliases 
 ```
