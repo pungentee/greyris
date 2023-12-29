@@ -19,6 +19,8 @@ import (
 
 var (
 	newUser bool
+
+	sortAllAliases bool
 )
 
 // Track for store only useful data
@@ -31,7 +33,7 @@ type Track struct {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "greyris [link to your playlist in spotify]",
+	Use:   "greyris [link] || [alias] || all || [link] all",
 	Short: "Sorts you Spotify playlists",
 	Long: `This console utility will help you sort your Spotify playlists
 
@@ -39,26 +41,29 @@ Sorting rules: by author name -> by album release date -> by track number in the
 
 Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/callback"
 `,
-	Version: "v1.3.0",
+	Version: "v1.4.0",
 
 	Args: func(cmd *cobra.Command, args []string) error {
-		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 			return err
 		}
 
-		if !strings.HasPrefix(args[0], "https://open.spotify.com/playlist/") {
-			aliasesDB, err := getDB("alias", false)
-			defer aliasesDB.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
+		aliasesDB, err := getDB("alias", false)
+		defer aliasesDB.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-			link, err := aliasesDB.Get(bitcask.Key(args[0]))
-			if err != nil {
-				return errors.New("invalid link or undefined alias")
+		for index, value := range args {
+			if value == "all" {
+				sortAllAliases = true
+			} else if !strings.HasPrefix(value, "https://open.spotify.com/playlist/") {
+				link, err := aliasesDB.Get(bitcask.Key(value))
+				if err != nil {
+					return errors.New("invalid link or undefined alias")
+				}
+				args[index] = string(link)
 			}
-
-			args[0] = string(link)
 		}
 
 		return nil
@@ -76,18 +81,51 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 			log.Fatal(err)
 		}
 
-		playlistID := getIdByLink(args[0])
-		items, err := getAllItemsList(client, playlistID)
-		if err != nil {
-			log.Fatal(err)
+		if sortAllAliases {
+			aliasesDB, err := getDB("alias", false)
+			defer aliasesDB.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			links, err := getAllAliasesFromDB(aliasesDB)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			args = append(args, links...)
 		}
 
-		tracks := itemsToTracks(items)
-		sorted := sortTrackList(append([]Track(nil), tracks...))
+		for _, value := range args {
+			if value == "all" {
+				continue
+			}
 
-		err = reorderPlaylist(client, spotify.ID(playlistID), tracks, sorted)
-		if err != nil {
-			log.Fatal(err)
+			playlistID := getIdByLink(value)
+
+			if len(args) > 1 {
+				playlistDetails, err := client.GetPlaylist(context.Background(), playlistID)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				fmt.Printf("Playlist: %s\n", playlistDetails.Name)
+			}
+
+			items, err := getAllItemsList(client, playlistID)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			tracks := itemsToTracks(items)
+			sorted := sortTrackList(append([]Track(nil), tracks...))
+
+			err = reorderPlaylist(client, playlistID, tracks, sorted)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println()
 		}
 
 		fmt.Println("Completed")
@@ -271,15 +309,15 @@ func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
 }
 
 // getIdByLink returns id from link
-func getIdByLink(link string) string {
-	return link[34:56]
+func getIdByLink(link string) spotify.ID {
+	return spotify.ID(link[34:56])
 }
 
 // getAllItemsList return list with all tracks from playlist
-func getAllItemsList(client *spotify.Client, playlistID string) (result []spotify.PlaylistItem, err error) {
+func getAllItemsList(client *spotify.Client, playlistID spotify.ID) (result []spotify.PlaylistItem, err error) {
 	fmt.Println("Fetching tracks list...")
 
-	tracks, err := client.GetPlaylistItems(context.Background(), spotify.ID(playlistID)) // getting first page
+	tracks, err := client.GetPlaylistItems(context.Background(), playlistID) // getting first page
 	if err != nil {
 		return nil, err
 	}
@@ -389,4 +427,22 @@ func remove[T any](slice []T, index int) []T {
 func moveElement[T any](slice []T, from int, to int) []T {
 	value := slice[from]
 	return insert(remove(slice, from), value, to)
+}
+
+func getAllAliasesFromDB(db bitcask.DB) (links []string, err error) {
+	err = db.ForEach(func(key bitcask.Key) error {
+		link, err := db.Get(key)
+		if err != nil {
+			return err
+		}
+
+		links = append(links, string(link))
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return links, nil
 }
