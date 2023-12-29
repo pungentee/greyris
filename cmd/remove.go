@@ -10,7 +10,7 @@ var removeCmd = &cobra.Command{
 	Use:   "remove [name]",
 	Short: "Remove alias to the playlist link",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 			return err
 		}
 		return nil
@@ -22,10 +22,12 @@ var removeCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		aliasName := args[0]
-		err = aliasesDB.Delete(bitcask.Key(aliasName))
-		if err != nil {
-			log.Fatal(err)
+		for index := range args {
+			aliasName := args[index]
+			err = aliasesDB.Delete(bitcask.Key(aliasName))
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	},
 }
