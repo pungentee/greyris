@@ -17,6 +17,13 @@ import (
 	"strings"
 )
 
+// Track for store only useful data
+type Track struct {
+	artist           string
+	albumReleaseDate string
+	trackNumber      int
+}
+
 // getDB returns a bitcask.DB that locate in ~/.greyris/<name>
 // don't forgot call `defer db.Close()`
 func getDB(name string, new bool) (bitcask.DB, error) {
@@ -243,7 +250,6 @@ func itemsToTracks(items []spotify.PlaylistItem) (tracks []Track) {
 			trackNumber:      track.TrackNumber,
 			artist:           artistName,
 			albumReleaseDate: track.Album.ReleaseDate,
-			id:               track.ID,
 		})
 	}
 	return
