@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/zmb3/spotify/v2"
-	"go.mills.io/bitcask/v2"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
+	"github.com/zmb3/spotify/v2"
+	"go.mills.io/bitcask/v2"
 )
 
 var (
