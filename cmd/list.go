@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/spf13/cobra"
 	"go.mills.io/bitcask/v2"
-	"log"
 )
 
 // listCmd represents the list command
@@ -19,10 +20,10 @@ var listCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		aliasesDB, err := getDB("alias", false)
-		defer aliasesDB.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer aliasesDB.Close()
 
 		err = aliasesDB.ForEach(func(key bitcask.Key) error {
 			value, err := aliasesDB.Get(key)

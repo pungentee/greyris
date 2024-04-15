@@ -30,6 +30,7 @@ Sorting rules: by author name -> by album release date -> by track number in the
 
 Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/callback"
 `,
+
 	Version: "v1.4.0",
 
 	Args: func(cmd *cobra.Command, args []string) error {
@@ -38,10 +39,10 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 		}
 
 		aliasesDB, err := getDB("alias", false)
-		defer aliasesDB.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer aliasesDB.Close()
 
 		for index, value := range args {
 			if value == "all" {
@@ -72,10 +73,11 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 
 		if sortAllAliases {
 			aliasesDB, err := getDB("alias", false)
-			defer aliasesDB.Close()
+
 			if err != nil {
 				log.Fatal(err)
 			}
+			defer aliasesDB.Close()
 
 			aliases, err := getAllIDsFromDB(aliasesDB)
 			if err != nil {
