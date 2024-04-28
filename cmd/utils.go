@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/zmb3/spotify/v2"
-	spotifyauth "github.com/zmb3/spotify/v2/auth"
-	"go.mills.io/bitcask/v2"
-	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/zmb3/spotify/v2"
+	spotifyAuth "github.com/zmb3/spotify/v2/auth"
+	"go.mills.io/bitcask/v2"
+	"golang.org/x/oauth2"
 )
 
 // Track for store only useful data
@@ -115,15 +116,15 @@ func getClientSecret(db bitcask.DB) (string, error) {
 }
 
 // getAuthenticator returns configured authenticator
-func getAuthenticator(clientID, clientSecret string) *spotifyauth.Authenticator {
-	return spotifyauth.New(
-		spotifyauth.WithClientID(clientID),
-		spotifyauth.WithClientSecret(clientSecret),
-		spotifyauth.WithRedirectURL("http://localhost:8080/callback"),
-		spotifyauth.WithScopes(
-			spotifyauth.ScopePlaylistReadPrivate,
-			spotifyauth.ScopePlaylistModifyPrivate,
-			spotifyauth.ScopePlaylistModifyPublic))
+func getAuthenticator(clientID, clientSecret string) *spotifyAuth.Authenticator {
+	return spotifyAuth.New(
+		spotifyAuth.WithClientID(clientID),
+		spotifyAuth.WithClientSecret(clientSecret),
+		spotifyAuth.WithRedirectURL("http://localhost:8080/callback"),
+		spotifyAuth.WithScopes(
+			spotifyAuth.ScopePlaylistReadPrivate,
+			spotifyAuth.ScopePlaylistModifyPrivate,
+			spotifyAuth.ScopePlaylistModifyPublic))
 }
 
 // login returns *spotify.Client
@@ -178,7 +179,7 @@ func login(db bitcask.DB) (*spotify.Client, error) {
 }
 
 // authenticate log in user and returns *spotify.Client
-func authenticate(authenticator *spotifyauth.Authenticator) *spotify.Client {
+func authenticate(authenticator *spotifyAuth.Authenticator) *spotify.Client {
 	// copied from https://github.com/zmb3/spotify/blob/master/examples/authenticate/authcode/authenticate.go
 	ch := make(chan *spotify.Client)
 	state := "abc123"

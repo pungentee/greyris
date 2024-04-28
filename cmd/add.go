@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"errors"
-	"go.mills.io/bitcask/v2"
 	"log"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"go.mills.io/bitcask/v2"
 )
 
 // addCmd represents the add command
@@ -28,10 +28,10 @@ var addCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		aliasesDB, err := getDB("alias", false)
-		defer aliasesDB.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer aliasesDB.Close()
 
 		for index := 0; index < len(args); index += 2 {
 			aliasName := args[index]

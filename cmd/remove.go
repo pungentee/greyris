@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/spf13/cobra"
 	"go.mills.io/bitcask/v2"
-	"log"
 )
 
 var removeCmd = &cobra.Command{
@@ -18,10 +19,10 @@ var removeCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		aliasesDB, err := getDB("alias", false)
-		defer aliasesDB.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer aliasesDB.Close()
 
 		for index := range args {
 			aliasName := args[index]
