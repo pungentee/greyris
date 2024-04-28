@@ -73,7 +73,6 @@ Requires: The Redirect URI of your Spotify App should be "http://localhost:8080/
 
 		if sortAllAliases {
 			aliasesDB, err := getDB("alias", false)
-
 			if err != nil {
 				log.Fatal(err)
 			}

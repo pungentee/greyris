@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/spf13/cobra"
 	"go.mills.io/bitcask/v2"
-	"log"
 )
 
 var removeCmd = &cobra.Command{

@@ -5,9 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"go.mills.io/bitcask/v2"
-
 	"github.com/spf13/cobra"
+	"go.mills.io/bitcask/v2"
 )
 
 // addCmd represents the add command
