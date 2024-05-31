@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/spf13/cobra v1.8.0
 	github.com/zmb3/spotify/v2 v2.4.0
-	go.mills.io/bitcask/v2 v2.0.3
+	go.mills.io/bitcask/v2 v2.0.8
 	golang.org/x/oauth2 v0.15.0
 )
 
@@ -19,9 +19,9 @@ require (
 	github.com/mattetti/filebuffer v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )

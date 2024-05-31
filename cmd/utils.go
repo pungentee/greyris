@@ -25,9 +25,9 @@ type Track struct {
 	trackNumber      int
 }
 
-// getDB returns a bitcask.DB that locate in ~/.greyris/<name>
+// getDB returns a *bitcask.Bitcask that locate in ~/.greyris/<name>
 // don't forgot call `defer db.Close()`
-func getDB(name string, new bool) (bitcask.DB, error) {
+func getDB(name string, new bool) (*bitcask.Bitcask, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -57,7 +57,7 @@ func getIdByLink(link string) spotify.ID {
 
 // getClientID finds client ID in db and returns client ID
 // if not found, then requests it from the user and stores it in the database
-func getClientID(db bitcask.DB) (string, error) {
+func getClientID(db *bitcask.Bitcask) (string, error) {
 	idKey := bitcask.Key("clientID")
 	id, err := db.Get(idKey)
 	if err != nil {
@@ -87,7 +87,7 @@ func getClientID(db bitcask.DB) (string, error) {
 
 // getClientSecret finds client Secret in db and returns client ID
 // if not found, then requests it from the user and stores it in the database
-func getClientSecret(db bitcask.DB) (string, error) {
+func getClientSecret(db *bitcask.Bitcask) (string, error) {
 	secretKey := bitcask.Key("secretID")
 	secret, err := db.Get(secretKey)
 	if err != nil {
@@ -130,7 +130,7 @@ func getAuthenticator(clientID, clientSecret string) *spotifyAuth.Authenticator 
 // login returns *spotify.Client
 // if a token is stored in db, then log in with it
 // if token is not found in db, then using authenticate log in and store token in db
-func login(db bitcask.DB) (*spotify.Client, error) {
+func login(db *bitcask.Bitcask) (*spotify.Client, error) {
 	var token *oauth2.Token
 	tokenKey := bitcask.Key("tokenJson")
 
@@ -340,7 +340,7 @@ func removeValue[T comparable](l []T, item T) []T {
 	return out
 }
 
-func getAllIDsFromDB(db bitcask.DB) (IDs []string, err error) {
+func getAllIDsFromDB(db *bitcask.Bitcask) (IDs []string, err error) {
 	err = db.ForEach(func(key bitcask.Key) error {
 		link, err := db.Get(key)
 		if err != nil {
